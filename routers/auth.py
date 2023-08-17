@@ -20,7 +20,7 @@ bcryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2Bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
-def getDb():
+def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -28,7 +28,7 @@ def getDb():
         db.close()
 
 
-dbDependency = Annotated[Session, Depends(getDb)]
+db_dependency = Annotated[Session, Depends(get_db)]
 
 
 class CreateUserRequest(BaseModel):
@@ -45,7 +45,7 @@ class Token(BaseModel):
     token_type: str
 
 
-def authenticateUser(username: str, password: str, db):
+def authenticate_user(username: str, password: str, db):
     user = db.query(Users).filter(Users.username == username).first()
     if not user:
         return False
@@ -56,24 +56,26 @@ def authenticateUser(username: str, password: str, db):
     return user
 
 
-def createAccessToken(username: str, userId: int, expiresDelta: timedelta):
-    encode = {"sub": username, "id": userId}
+def create_access_token(username: str, userId: int, role: str, expiresDelta: timedelta):
+    encode = {"sub": username, "id": userId, "role": role}
     expires = datetime.utcnow() + expiresDelta
     encode.update({"exp": expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def getCurrentUser(token: Annotated[str, Depends(oauth2Bearer)]):
+async def get_current_user(token: Annotated[str, Depends(oauth2Bearer)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         userId: int = payload.get("id")
+        userRole: str = payload.get("role")
+
         if username is None or userId is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate user.",
             )
-        return {"username": username, "id": userId}
+        return {"username": username, "id": userId, "user_role": userRole}
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user."
@@ -81,7 +83,7 @@ async def getCurrentUser(token: Annotated[str, Depends(oauth2Bearer)]):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def createUser(db: dbDependency, create_user_request: CreateUserRequest):
+async def create_user(db: db_dependency, create_user_request: CreateUserRequest):
     create_user_model = Users(
         email=create_user_request.email,
         username=create_user_request.username,
@@ -96,14 +98,16 @@ async def createUser(db: dbDependency, create_user_request: CreateUserRequest):
 
 
 @router.post("/token", response_model=Token)
-async def loginForAccessToken(
-    formData: Annotated[OAuth2PasswordRequestForm, Depends()], db: dbDependency
+async def login_for_access_token(
+    formData: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency
 ):
-    user = authenticateUser(formData.username, formData.password, db)
+    user = authenticate_user(formData.username, formData.password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate user.",
         )
-    token = createAccessToken(user.username, user.id, timedelta(minutes=20))
+    token = create_access_token(
+        user.username, user.id, user.role, timedelta(minutes=20)
+    )
     return {"access_token": token, "token_type": "bearer"}

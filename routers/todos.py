@@ -6,11 +6,13 @@ from fastapi import Depends, HTTPException, Path, APIRouter
 
 from models import Todos
 from database import SessionLocal
+from .auth import get_current_user
 
-router = APIRouter()
+
+router = APIRouter(prefix="/todos", tags=["todos"])
 
 
-def getDb():
+def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -18,7 +20,8 @@ def getDb():
         db.close()
 
 
-dbDependency = Annotated[Session, Depends(getDb)]
+db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 class TodoRequest(BaseModel):
@@ -29,30 +32,59 @@ class TodoRequest(BaseModel):
 
 
 @router.get("/")
-async def readAll(db: dbDependency, status_code=status.HTTP_200_OK):
-    return db.query(Todos).all()
+async def read_all(
+    user: user_dependency, db: db_dependency, status_code=status.HTTP_200_OK
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failed")
+
+    return db.query(Todos).filter(Todos.owner_id == user.get("id")).all()
 
 
-@router.get("/todo/{todoId}", status_code=status.HTTP_200_OK)
-async def readAll(db: dbDependency, todoId: int = Path(gt=0)):
-    todoModel = db.query(Todos).filter(Todos.id == todoId).first()
+@router.get("/{todoId}", status_code=status.HTTP_200_OK)
+async def read_todo(user: user_dependency, db: db_dependency, todoId: int = Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failed")
+
+    todoModel = (
+        db.query(Todos)
+        .filter(Todos.id == todoId)
+        .filter(Todos.owner_id == user.get("id"))
+        .first()
+    )
     if todoModel is None:
         raise HTTPException(status_code=404, detail="Todo not found")
     return todoModel
 
 
-@router.post("/todo", status_code=status.HTTP_201_CREATED)
-async def create_todo(db: dbDependency, todoRequest: TodoRequest):
-    todoModel = Todos(**todoRequest.model_dump())
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_todo(
+    user: user_dependency, db: db_dependency, todoRequest: TodoRequest
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failed")
+
+    todoModel = Todos(**todoRequest.model_dump(), owner_id=user.get("id"))
     db.add(todoModel)
     db.commit()
 
 
-@router.put("/todo/{todoId}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{todoId}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_todo(
-    db: dbDependency, todoRequest: TodoRequest, todoId: int = Path(gt=0)
+    user: user_dependency,
+    db: db_dependency,
+    todoRequest: TodoRequest,
+    todoId: int = Path(gt=0),
 ):
-    todoModel = db.query(Todos).filter(Todos.id == todoId).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failed")
+
+    todoModel = (
+        db.query(Todos)
+        .filter(Todos.owner_id == user.get("id"))
+        .filter(Todos.id == todoId)
+        .first()
+    )
     if todoModel is None:
         raise HTTPException(status_code=404, detail="Todo not found")
 
@@ -65,11 +97,25 @@ async def update_todo(
     db.commit()
 
 
-@router.delete("/todo/{todoId}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(db: dbDependency, todoId: int = Path(gt=0)):
-    todoModel = db.query(Todos).filter(Todos.id == todoId).first()
+@router.delete("/{todoId}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_todo(
+    user: user_dependency, db: db_dependency, todoId: int = Path(gt=0)
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failed")
+
+    todoModel = (
+        db.query(Todos)
+        .filter(Todos.owner_id == user.get("id"))
+        .filter(Todos.id == todoId)
+        .first()
+    )
+
     if todoModel is None:
         raise HTTPException(status_code=404, detail="Todo not found")
 
-    db.query(Todos).filter(Todos.id == todoId).delete()
+    db.query(Todos).filter(Todos.id == todoId).filter(
+        Todos.owner_id == user.get("id")
+    ).delete()
+
     db.commit()
