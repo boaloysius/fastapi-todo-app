@@ -1,9 +1,13 @@
 annotated-types==0.5.0
 anyio==3.7.1
 astroid @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_e9yo8l0380/croot/astroid_1676904320145/work
+bcrypt==4.0.1
+cffi==1.15.1
 click==8.1.6
 colorama @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_100_k35lkb/croot/colorama_1672386539781/work
+cryptography==41.0.3
 dill @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_7eaenha9af/croot/dill_1667919539340/work
+ecdsa==0.18.0
 exceptiongroup==1.1.3
 fastapi==0.101.1
 flake8 @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_902fhgw5pe/croot/flake8_1674581817635/work
@@ -12,12 +16,21 @@ idna==3.4
 isort @ file:///tmp/build/80754af9/isort_1628603791788/work
 lazy-object-proxy @ file:///Users/ktietz/demo/mc3/conda-bld/lazy-object-proxy_1629147154221/work
 mccabe @ file:///opt/conda/conda-bld/mccabe_1644221741721/work
+passlib==1.7.4
 platformdirs @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_f7wx6m2jsp/croots/recipe/platformdirs_1662711384790/work
+psycopg2-binary==2.9.7
+pyasn1==0.5.0
 pycodestyle @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_5b2mq44vl0/croot/pycodestyle_1674267228581/work
+pycparser==2.21
 pydantic==2.1.1
 pydantic_core==2.4.0
 pyflakes @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_d9_v8e0_nr/croot/pyflakes_1674165137080/work
 pylint @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_den022q02c/croot/pylint_1676919908684/work
+python-dotenv==1.0.0
+python-jose==3.3.0
+python-multipart==0.0.6
+rsa==4.9
+six==1.16.0
 sniffio==1.3.0
 SQLAlchemy==2.0.19
 starlette==0.27.0
